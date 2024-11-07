@@ -2,11 +2,12 @@ function [X_f,X_b,cov_f,cov_b,X_o]=EKF_42_truck(dt,a_f,w_f,a_b,w_b,v_p,step_no)
 
 n=21;   %状态量个数
 N=length(a_f); %数据长度
-Ta=1800;
-Tg=1800;
-
+Tba=1800;
+Tbg=1800;
+Tsa=1800;
+Tsg=1800;
 %% 获得误差矩阵
-[P_f,P_b,cov_f,cov_b,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg);
+[P_f,P_b,cov_f,cov_b,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
 
 %% 获得初始状态
 X_f=Nav_init(n,N,a_f);
@@ -29,12 +30,12 @@ k=2;
 while k<N+1
     %% IMU1
     X_f(:,k)=IMU_update(X_f(:,k-1),a_f(:,k-1),a_f(:,k),w_f(:,k-1),w_f(:,k),dt);    %IMU状态递推
-    [PHI_f,G_f]=get_matrix(X_f(:,k),dt,a_f(:,k),Ta,Tg);
+    [PHI_f,G_f]=get_matrix(X_f(:,k),dt,a_f(:,k),w_f(:,k),Tba,Tbg,Tsa,Tsg);
     P_f=PHI_f*P_f*PHI_f'+G_f*Q*G_f'/dt;
     cov_f(:,k)=diag(P_f);
     %% IMU2
     X_b(:,k)=IMU_update(X_b(:,k-1),a_b(:,k-1),a_b(:,k),w_f(:,k-1),w_b(:,k),dt);    %IMU状态递推
-    [PHI_b,G_b]=get_matrix(X_b(:,k),dt,a_b(:,k),Ta,Tg);
+    [PHI_b,G_b]=get_matrix(X_b(:,k),dt,a_b(:,k),w_b(:,k),Tba,Tbg,Tsa,Tsg);
     P_b=PHI_b*P_b*PHI_b'+G_b*Q*G_b'/dt;
     cov_b(:,k)=diag(P_b);
     if k>step_no(steps) && tag==0
@@ -42,7 +43,7 @@ while k<N+1
         Cb2h_f=euler2dcmR2b([X_f(7,1) X_f(8,1) dyaw_f])';
         dyaw_b=atan2((X_b(2,k-1)-X_b(2,1)),(X_b(1,k-1)-X_b(1,1)));
         Cb2h_b=euler2dcmR2b([X_b(7,1) X_b(8,1) dyaw_b])';
-        [P_f,P_b,cov_f,cov_b,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg);
+        [P_f,P_b,cov_f,cov_b,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
         tag=1;
         k=2;
         continue
@@ -79,17 +80,17 @@ X_o=0.5*(X_f(1:3,:)+X_b(1:3,:));
 end
 
 %% 获得误差矩阵
-function [P1,P2,cov1,cov2,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg)
+function [P1,P2,cov1,cov2,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg)
 
 %状态量的协方差矩阵
 sigma_p_intial=1e-5*[1 1 1]';
 sigma_v_intial=1e-5*[1 1 1]';
 sigma_a_intial=0.1*pi/180*[1 1 1]';
-sigma_ba=0.02*[1 1 1]';
-sigma_bg=0.01*pi/180*[1 1 1]';
-
-P1=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg].^2);
-cov1=zeros(n,N);
+sigma_ba=0.04*[1 1 1]';
+sigma_bg=0.02*pi/180*[1 1 1]';
+sigma_sa=0.04*[1 1 1]';
+sigma_sg=0.02*pi/180*[1 1 1]';
+P1=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg;sigma_sa;sigma_sg].^2);cov1=zeros(n,N);
 cov1(:,1)=diag(P1);
 P2=P1;
 cov2=cov1;
@@ -99,11 +100,14 @@ sigma_acce_noise=0.025*[1 1 1]';
 sigma_gyro_noise=0.01*pi/180*[1 1 1]';
 sigma_ba_driving_noise=0.001*[1 1 1]';
 sigma_bg_driving_noise=0.001*pi/180*[1 1 1]';
+sigma_sa_driving_noise=0.01*[1 1 1]';
+sigma_sg_driving_noise=0.01*pi/180*[1 1 1]';
 
-Q=diag([sigma_acce_noise;sigma_gyro_noise;sigma_ba_driving_noise;sigma_bg_driving_noise].^2);
-Q(7:9,7:9)=2*Q(7:9,7:9)/Ta;
-Q(10:12,10:12)=2*Q(10:12,10:12)/Tg;
-
+Q=diag([sigma_acce_noise;sigma_gyro_noise;sigma_ba_driving_noise;sigma_bg_driving_noise;sigma_sa_driving_noise;sigma_sg_driving_noise].^2);
+Q(7:9,7:9)=2*Q(7:9,7:9)/Tba;
+Q(10:12,10:12)=2*Q(10:12,10:12)/Tbg;
+Q(13:15,13:15)=2*Q(7:9,7:9)/Tsa;
+Q(16:18,16:18)=2*Q(10:12,10:12)/Tsg;
 %量测噪声矩阵
 sigma_zupt_p=0.01*[1 1 1]';
 sigma_zupt=0.01*[1 1 1]';
@@ -134,7 +138,7 @@ X(7:9,1)=euler0;
 end
 
 %% 获得转移矩阵矩阵
-function [PHI,G]=get_matrix(X,dt,ak,Ta,Tg)
+function [PHI,G]=get_matrix(X,dt,ak,wk,Tba,Tbg,Tsa,Tsg)
 
 Cb2n=euler2dcmR2b(X(7:9))';
 
@@ -144,26 +148,36 @@ F=zeros(length(X));
 F(1:3,4:6)=eye(3);
 F(4:6,7:9)=fnk_vec;
 F(4:6,10:12)=Cb2n;
+F(4:6,16:18)=Cb2n*diag(ak);
 F(7:9,13:15)=-Cb2n;
-F(10:12,10:12)=-1/Ta*eye(3);
-F(13:15,13:15)=-1/Tg*eye(3);
-% PHI=[O eye(3)     O           O         O;
-%          O    O    fnk_vec    Cb2n      O   ;
-%          O    O         O           O     -Cb2n;
-%          O    O         O        -1/Ta      O;
-%          O    O         O           O      -1/Tg];
+F(7:9,19:21)=-Cb2n*diag(wk);
+F(10:12,10:12)=-1/Tba*eye(3);
+F(13:15,13:15)=-1/Tbg*eye(3);
+F(16:18,16:18)=-1/Tsa*eye(3);
+F(19:21,19:21)=-1/Tsg*eye(3);
+% PHI=[O    eye(3)       O           O         O               O                      O;
+%          O       O      fnk_vec    Cb2n       O      Cb2n*diag(f_b)         O;
+%          O       O           O           O      -Cb2n           O            -Cb2n*diag(w_b);
+%          O       O           O        -1/Ta       O               O                      O;
+%          O       O           O           O       -1/Tg            O                      O;
+%          O       O           O           O          O            -1/Tg                   O;
+%          O       O           O           O          O               O]                  -1/Tg;
 PHI=eye(length(X))+F*dt;
 
-Gc=zeros(length(X),12);
+Gc=zeros(length(X),18);
 Gc(4:6,1:3)=Cb2n;
 Gc(7:9,4:6)=-Cb2n;
 Gc(10:12,7:9)=eye(3);
 Gc(13:15,10:12)=eye(3);
-% Gc=[O      O     O O; 
-%     Cb2n    O     O O; 
-%         O -Cb2n   O O; 
-%         O     O       I  O; 
-%         O     O      O  I];
+Gc(16:18,13:15)=eye(3);
+Gc(19:21,16:18)=eye(3);
+% Gc=[O      O     O     O     O    O; 
+%     Cb2n    O     O     O     O    O; 
+%         O -Cb2n   O     O     O    O; 
+%         O     O       I      O     O    O; 
+%         O     O      O      I      O    O;
+%         O     O      O     O      I     O;
+%         O     O      O     O      O    I;
 G=dt*Gc;
 
 end
@@ -248,7 +262,7 @@ end
 
 %% 惯性递推
 function [Xk]=IMU_update(Xk_1,fk_1,fk,wk_1,wk,dt)
-Xk=zeros(15,1);
+Xk=zeros(21,1);
 fk=fk+Xk_1(10:12);
 wk=wk+Xk_1(13:15);
 
@@ -273,7 +287,7 @@ Xk(4:6)=Xk_1(4:6)+vcor+Cb2nk_1*vfk;
 
 Xk(1:3)=Xk_1(1:3)+Xk(4:6)*dt;
 
-Xk(10:15)=Xk_1(10:15);
+Xk(10:21)=Xk_1(10:21);
 
 end
 
