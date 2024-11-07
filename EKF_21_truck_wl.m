@@ -1,9 +1,11 @@
 function [X,cov]=EKF_21_truck_wl(dt,a,w,v_p_f,step_no)
 
-n=15;   %状态量个数
+n=21;   %状态量个数
 N=length(a); %数据长度
-Ta=1800;
-Tg=1800;
+Tba=1800;
+Tbg=1800;
+Tsa=1800;
+Tsg=1800;
 %% 获得误差矩阵
 [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg);
 
@@ -20,7 +22,7 @@ tag=0;
 k=2;
 while k<N+1
     X(:,k)=IMU_update(X(:,k-1),a(:,k-1),a(:,k),w(:,k-1),w(:,k),dt);    %IMU状态递推
-    [PHI,G]=get_matrix(X(:,k),dt,a(:,k),Ta,Tg);
+    [PHI,G]=get_matrix(X(:,k),dt,a(:,k),w(:,k),Tba,Tbg,Tsa,Tsg);
     P=PHI*P*PHI'+G*Q*G'/dt;
     cov(:,k)=diag(P);
     if k>step_no(steps) && tag==0
@@ -123,7 +125,7 @@ X(7:9,1)=euler0;
 end
 
 %% 获得转移矩阵矩阵
-function [PHI,G]=get_matrix(X,dt,ak,Ta,Tg)
+function [PHI,G]=get_matrix(X,dt,ak,wk,Tba,Tbg,Tsa,Tsg)
 
 Cb2n=euler2dcmR2b(X(7:9))';
 
@@ -133,26 +135,36 @@ F=zeros(length(X));
 F(1:3,4:6)=eye(3);
 F(4:6,7:9)=fnk_vec;
 F(4:6,10:12)=Cb2n;
+F(4:6,16:18)=Cb2n*diag(ak);
 F(7:9,13:15)=-Cb2n;
-F(10:12,10:12)=-1/Ta*eye(3);
-F(13:15,13:15)=-1/Tg*eye(3);
-% PHI=[O eye(3)     O           O         O;
-%          O    O    fnk_vec    Cb2n      O   ;
-%          O    O         O           O     -Cb2n;
-%          O    O         O        -1/Ta      O;
-%          O    O         O           O      -1/Tg];
+F(7:9,19:21)=-Cb2n*diag(wk);
+F(10:12,10:12)=-1/Tba*eye(3);
+F(13:15,13:15)=-1/Tbg*eye(3);
+F(16:18,16:18)=-1/Tsa*eye(3);
+F(19:21,19:21)=-1/Tsg*eye(3);
+% PHI=[O    eye(3)       O           O         O               O                      O;
+%          O       O      fnk_vec    Cb2n       O      Cb2n*diag(f_b)         O;
+%          O       O           O           O      -Cb2n           O            -Cb2n*diag(w_b);
+%          O       O           O        -1/Ta       O               O                      O;
+%          O       O           O           O       -1/Tg            O                      O;
+%          O       O           O           O          O            -1/Tg                   O;
+%          O       O           O           O          O               O]                  -1/Tg;
 PHI=eye(length(X))+F*dt;
 
-Gc=zeros(length(X),12);
+Gc=zeros(length(X),18);
 Gc(4:6,1:3)=Cb2n;
 Gc(7:9,4:6)=-Cb2n;
 Gc(10:12,7:9)=eye(3);
 Gc(13:15,10:12)=eye(3);
-% Gc=[O      O     O O; 
-%     Cb2n    O     O O; 
-%         O -Cb2n   O O; 
-%         O     O       I  O; 
-%         O     O      O  I];
+Gc(16:18,13:15)=eye(3);
+Gc(19:21,16:18)=eye(3);
+% Gc=[O      O     O     O     O    O; 
+%     Cb2n    O     O     O     O    O; 
+%         O -Cb2n   O     O     O    O; 
+%         O     O       I      O     O    O; 
+%         O     O      O      I      O    O;
+%         O     O      O     O      I     O;
+%         O     O      O     O      O    I;
 G=dt*Gc;
 
 end
