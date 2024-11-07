@@ -7,7 +7,7 @@ Tbg=1800;
 Tsa=1800;
 Tsg=1800;
 %% 获得误差矩阵
-[P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg);
+[P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
 
 %% 获得初始状态
 [X,a,w]=Nav_init(n,N,a,w);
@@ -28,7 +28,7 @@ while k<N+1
     if k>step_no(steps) && tag==0
         dyaw=atan2(X(2,k-1),X(1,k-1));
         Cb2h=euler2dcmR2b([X(7,1) X(8,1) dyaw])';
-        [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg);
+        [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
         tag=1;
         k=2;
         continue
@@ -62,41 +62,34 @@ end
 end
 
 %% 获得误差矩阵
-function [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Ta,Tg)
+function [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg)
 
 %状态量的协方差矩阵
-% sigma_p_intial=1e-5*[1 1 1]';
-% sigma_v_intial=1e-5*[1 1 1]';
-% sigma_a_intial=0.1*pi/180*[1 1 1]';
-% sigma_ba=0.1*[1 1 1]';
-% sigma_bg=0.1*pi/180*[1 1 1]';
 sigma_p_intial=1e-5*[1 1 1]';
 sigma_v_intial=1e-5*[1 1 1]';
 sigma_a_intial=0.1*pi/180*[1 1 1]';
 sigma_ba=0.04*[1 1 1]';
 sigma_bg=0.02*pi/180*[1 1 1]';
-P=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg].^2);
+sigma_sa=0.001*[1 1 1]';
+sigma_sg=0.001*pi/180*[1 1 1]';
+P=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg;sigma_sa;sigma_sg].^2);
 cov=zeros(n,N);
 cov(:,1)=diag(P);
 
 %状态噪声矩阵
-% sigma_acce_noise=0.06*[1 1 1]';
-% sigma_gyro_noise=0.05*pi/180*[1 1 1]';
-% sigma_ba_driving_noise=0.01*[1 1 1]';
-% sigma_bg_driving_noise=0.01*pi/180*[1 1 1]';
 sigma_acce_noise=0.08*[1 1 1]';
 sigma_gyro_noise=0.05*pi/180*[1 1 1]';
 sigma_ba_driving_noise=0.01*[1 1 1]';
 sigma_bg_driving_noise=0.01*pi/180*[1 1 1]';
+sigma_sa_driving_noise=0.01*[1 1 1]';
+sigma_sg_driving_noise=0.01*pi/180*[1 1 1]';
 
-Q=diag([sigma_acce_noise;sigma_gyro_noise;sigma_ba_driving_noise;sigma_bg_driving_noise].^2);
-Q(7:9,7:9)=2*Q(7:9,7:9)/Ta;
-Q(10:12,10:12)=2*Q(10:12,10:12)/Tg;
+Q=diag([sigma_acce_noise;sigma_gyro_noise;sigma_ba_driving_noise;sigma_bg_driving_noise;sigma_sa_driving_noise;sigma_sg_driving_noise].^2);
+Q(7:9,7:9)=2*Q(7:9,7:9)/Tba;
+Q(10:12,10:12)=2*Q(10:12,10:12)/Tbg;
+Q(13:15,13:15)=2*Q(7:9,7:9)/Tsa;
+Q(16:18,16:18)=2*Q(10:12,10:12)/Tsg;
 %量测噪声矩阵
-% sigma_zupt_p=0.01*[1 1 1]';
-% sigma_zupt=0.01*[1 1 1]';
-% sigma_zaru=0.01*pi/180*[1 1 1]';
-% sigma_v=0.1*[1 1 1]';
 sigma_zupt_p=0.01*[1 1 1]';
 sigma_zupt=0.01*[1 1 1]';
 sigma_zaru=0.01*pi/180*[1 1 1]';
@@ -233,7 +226,7 @@ end
 
 %% 惯性递推
 function [Xk]=IMU_update(Xk_1,fk_1,fk,wk_1,wk,dt)
-Xk=zeros(15,1);
+Xk=zeros(21,1);
 fk=fk+Xk_1(10:12);
 wk=wk+Xk_1(13:15);
 
@@ -258,7 +251,7 @@ Xk(4:6)=Xk_1(4:6)+vcor+Cb2nk_1*vfk;
 
 Xk(1:3)=Xk_1(1:3)+Xk(4:6)*dt;
 
-Xk(10:15)=Xk_1(10:15);
+Xk(10:21)=Xk_1(10:21);
 
 end
 
