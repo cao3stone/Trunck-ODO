@@ -1,20 +1,19 @@
-function [X_f,X_b,cov_f,cov_b,X_o]=EKF_42_truck(dt,a_f,w_f,a_b,w_b,v_p,step_no)
+function [X_f,X_b,cov_f,cov_b,X_o]=EKF_42_truck(dt,a_f,w_f,a_b,w_b,v_p,step_no,L)
 
 n=21;   %状态量个数
 N=length(a_f); %数据长度
 Tba=1800;
 Tbg=1800;
-Tsa=1800;
-Tsg=1800;
+Tsa=3600;
+Tsg=3600;
 %% 获得误差矩阵
 [P_f,P_b,cov_f,cov_b,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
 
 %% 获得初始状态
 X_f=Nav_init(n,N,a_f);
 X_b=Nav_init(n,N,a_b);
-% r1=[0.13;0;-0.025];
-% r1=[0.13;0;0];
-r1=[0.26 0.045 0.03]'/2;
+% r1=[0.26 0.045 0.03]'/2;
+r1=L/2;
 r2=-r1;
 X_f(1:3,1)=r1;
 X_b(1:3,1)=r2;
@@ -87,19 +86,19 @@ sigma_p_intial=1e-5*[1 1 1]';
 sigma_v_intial=1e-5*[1 1 1]';
 sigma_a_intial=0.1*pi/180*[1 1 1]';
 sigma_ba=0.04*[1 1 1]';
-sigma_bg=0.02*pi/180*[1 1 1]';
-sigma_sa=0.04*[1 1 1]';
-sigma_sg=0.02*pi/180*[1 1 1]';
+sigma_bg=0.04*pi/180*[1 1 1]';
+sigma_sa=0.001*[1 1 1]';
+sigma_sg=0.001*pi/180*[1 1 1]';
 P1=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg;sigma_sa;sigma_sg].^2);cov1=zeros(n,N);
 cov1(:,1)=diag(P1);
 P2=P1;
 cov2=cov1;
 
 %状态噪声矩阵
-sigma_acce_noise=0.025*[1 1 1]';
-sigma_gyro_noise=0.01*pi/180*[1 1 1]';
-sigma_ba_driving_noise=0.001*[1 1 1]';
-sigma_bg_driving_noise=0.001*pi/180*[1 1 1]';
+sigma_acce_noise=0.05*[1 1 1]';
+sigma_gyro_noise=0.05*pi/180*[1 1 1]';
+sigma_ba_driving_noise=0.01*[1 1 1]';
+sigma_bg_driving_noise=0.01*pi/180*[1 1 1]';
 sigma_sa_driving_noise=0.01*[1 1 1]';
 sigma_sg_driving_noise=0.01*pi/180*[1 1 1]';
 
@@ -112,8 +111,8 @@ Q(16:18,16:18)=2*Q(10:12,10:12)/Tsg;
 sigma_zupt_p=0.01*[1 1 1]';
 sigma_zupt=0.01*[1 1 1]';
 sigma_zaru=0.01*pi/180*[1 1 1]';
-sigma_v=0.01*[1 1 1]';
-sigma_r=0.01*[1 1 1]';
+sigma_v=0.1*[1 1 1]';
+sigma_r=0.05*[1 1 1]';
 
 R_zupt=diag([sigma_zupt_p;sigma_zupt;sigma_zaru].^2);
 R_measure=diag([sigma_v;sigma_r].^2);

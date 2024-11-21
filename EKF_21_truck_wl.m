@@ -4,8 +4,8 @@ n=21;   %状态量个数
 N=length(a); %数据长度
 Tba=1800;
 Tbg=1800;
-Tsa=1800;
-Tsg=1800;
+Tsa=3600;
+Tsg=3600;
 %% 获得误差矩阵
 [P,cov,Q,R_zupt,R_measure]=Error_init(n,N,Tba,Tbg,Tsa,Tsg);
 
@@ -69,7 +69,7 @@ sigma_p_intial=1e-5*[1 1 1]';
 sigma_v_intial=1e-5*[1 1 1]';
 sigma_a_intial=0.1*pi/180*[1 1 1]';
 sigma_ba=0.04*[1 1 1]';
-sigma_bg=0.02*pi/180*[1 1 1]';
+sigma_bg=0.04*pi/180*[1 1 1]';
 sigma_sa=0.001*[1 1 1]';
 sigma_sg=0.001*pi/180*[1 1 1]';
 P=diag([sigma_p_intial;sigma_v_intial;sigma_a_intial;sigma_ba;sigma_bg;sigma_sa;sigma_sg].^2);
@@ -77,7 +77,7 @@ cov=zeros(n,N);
 cov(:,1)=diag(P);
 
 %状态噪声矩阵
-sigma_acce_noise=0.08*[1 1 1]';
+sigma_acce_noise=0.05*[1 1 1]';
 sigma_gyro_noise=0.05*pi/180*[1 1 1]';
 sigma_ba_driving_noise=0.01*[1 1 1]';
 sigma_bg_driving_noise=0.01*pi/180*[1 1 1]';

@@ -17,6 +17,8 @@ function v=gradient2(m_f,m_b,row_number)
     m_back=m_b;%从工作区读取数据
     magnfirst=m_front';
     magnsecond=m_back';
+    %  magnfirst=vecnorm(m_front,1)';
+    % magnsecond=vecnorm(m_back,1)';
 
     pointsize1=size(magnfirst,1);
     pointsize2=size(magnsecond,1);
@@ -25,43 +27,19 @@ function v=gradient2(m_f,m_b,row_number)
     % w=200;
     window=500;
     w=50;
+    w1=0.3;
+    w2=1-w1;
     p=1;
     q=1;
     v=[];
     id=[];
     j=1;
-%     for w=100:100:900
-%         for p=1:pointsize1-2*w
-%         gradient11(w+p,j)=((magnfirst(w+p,3)-magnfirst(p,3))+(magnfirst(p+2*w,3)-magnfirst(p,3))/2)/2;%s1(i+w,:)-s1(i,:)，第w+p个点的梯度
-%         end
-% 
-%         for q=1:pointsize1-2*w
-%         gradient12(w+q,j)=((magnsecond(w+q,3)-magnsecond(q,3))+(magnsecond(q+2*w,3)-magnsecond(q,3))/2)/2;%s2(j+w,:)-s2(j,:)
-%         end
-%       
-%         
-%     
-%         figure
-%         plot(gradient11(:,j));
-%         hold on
-%         plot(gradient12(:,j));
-%         xlabel('采样点数');
-%         ylabel('梯度');
-%         
-%         j=j+1;
-%   end
-        % figure
-        % plot(magnfirst(:,row_number),'b');%magnfirst(:,3)
-        %  hold on
-        %  plot(magnsecond(:,row_number),'r');%magnsecond(:,3)
-        %  legend('匹配线','magnfirst','magnsecond');    
 
-
-    % row_number=3;
     for i=1:pointsize1-window
         if m_front(row_number,i)~=0
             % [dist,DTW]=modify_DTW(magnfirst(i:i+window,row_number),window+1,magnsecond(i:i+window,row_number),window+1,w);%magnfirst(i:i+window,3),window+1,magnsecond(i:i+window,3),window+1,w
-            [dtwpath]=modify_DTW_path(magnfirst(i:i+window,row_number),window+1,magnsecond(i:i+window,row_number),window+1,w);
+            % [dtwpath]=modify_DTW_path(magnfirst(i:i+window,row_number),window+1,magnsecond(i:i+window,row_number),window+1,w);
+            [dtwpath]=modify_DTW_path(magnfirst(i:i+window),window+1,magnsecond(i:i+window),window+1,w,w1,w2);
         
             [m,n]=find(dtwpath==1); 
         
@@ -70,7 +48,7 @@ function v=gradient2(m_f,m_b,row_number)
             
             id1=max(max(idm),max(idn));
             id=[id;id1];
-            v1=0.25/((abs(m(id(end))-n(id(end))))/100);  
+            v1=0.26/((abs(m(id(end))-n(id(end))))/100);  
             % 
             % if v1>2
             %     v1=2;
@@ -93,24 +71,26 @@ function v=gradient2(m_f,m_b,row_number)
     
 
      
-% if i==300  
+if i==300  
 figure   
 for i=1:pointsize1-window
-if mod(i,300)==0
-         
+if mod(i,200)==0
+
        for j=1:100:size(m,1)          
-         line([i+w+m(j) i+w+n(j)],[magnfirst(i+w+m(j),3) magnsecond(i+w+n(j),3)]);% line([i+w+m(j) i+w+n(j)],[magnfirst(i+w+m(j),3) magnsecond(i+w+n(j),3)]);
+         line([i+w+m(j) i+w+n(j)],[magnfirst(i+w+m(j)) magnsecond(i+w+n(j))]);% line([i+w+m(j) i+w+n(j)],[magnfirst(i+w+m(j),3) magnsecond(i+w+n(j),3)]);
           hold on
        end
 
-         plot(magnfirst(:,row_number),'b');%magnfirst(:,3)
+         plot(magnfirst,'b');%magnfirst(:,3)
          hold on
-         plot(magnsecond(:,row_number),'r');%magnsecond(:,3)
+         plot(magnsecond,'r');%magnsecond(:,3)
          legend('匹配线','magnfirst','magnsecond');
          xlabel('采样点数');
          ylabel('磁场强度（uT）');
 end
 end
+
+
 %          for k=1:size(m,1)-1
 %              if (m(k)~=m(k+1)) && (n(k)~=n(k+1))
 %                  id(p,:)=[m(k+1) n(k+1)];

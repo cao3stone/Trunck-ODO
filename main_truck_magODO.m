@@ -2,62 +2,64 @@ addpath E:\研究生涯\6-code\自写\Tool_NED_FRD
 %% 基本参数
 fs=100;
 dt=1/fs;
-% gt=[0 54;0 0]*0.8;
-% gt=[0 26 26 57;0 0 -11 -11]*0.8;
-gt=[0 68;0 0]*0.8;
+gt=[0 48;0 0]*0.8; 
+L=[0.26 0.045 0.05]'; % 前后两个IMU的基线长度
 %% 读取数据
 [t,a_f,w_f,m_f,a_b,w_b,m_b]=read_data_magn_odo(dt);
 
 %% 脚步检测
 [v_p_f,step_No_f]=Step_Detection_Length(a_f,w_f,t,dt);
 [v_p_b,step_No_b]=Step_Detection_Length(a_b,w_b,t,dt);
-if_static=~(v_p_b==0);
-% plot(v_p_b)
-%% 惯性解算（单独、无速度）
-[X_f,~]=EKF_21_truck_wl(dt,a_f,w_f,v_p_f,step_No_f);
-[X_b,~]=EKF_21_truck_wl(dt,a_b,w_b,v_p_b,step_No_b);
+if_static=~(v_p_f==0);
 
-%% 初始姿态估计
-C=euler2dcmR2b(X_f(7:9,1))';
-m_f_t_0=C*m_f;
+%% 磁场数据预处理
+mean_number=100;
+win=10;
 
-C=euler2dcmR2b(X_b(7:9,1))';
-m_b_t_0=C*m_b;
+%先平滑，再作差求模
+m_f=movmean(m_f,mean_number,2);
+m_b=movmean(m_b,mean_number,2);
+dm_f=vecnorm(m_f(:,win+1:end)-m_f(:,1:end-win));
+dm_b=vecnorm(m_b(:,win+1:end)-m_b(:,1:end-win));
 
-%% 梯度分析
-% cal_gradient(m_f(1:3,:),m_b(1:3,:),t,t);
+%先作差求模，再平滑
+% dm_f=vecnorm(m_f(:,win+1:end)-m_f(:,1:end-win));
+% dm_b=vecnorm(m_b(:,win+1:end)-m_b(:,1:end-win));
+% dm_f=movmean(dm_f,mean_number,2);
+% dm_b=movmean(dm_b,mean_number,2);
 
-%% 磁场数据分析
-mean_number=50;
-% m_f=movmean(m_f,mean_number,2);
-% m_b=movmean(m_b,mean_number,2);
-m_f_t_0=movmean(m_f_t_0,mean_number,2);
-m_b_t_0=movmean(m_b_t_0,mean_number,2);
+% figure
+% t=1:length(dm_b);
+% plot(t,dm_f(1,:))
+% hold on
+% plot(t,dm_b(1,:))
 
 %% 速度对齐
-v=gradient2(m_f_t_0.*if_static,m_b_t_0.*if_static,3);
+% v=gradient2(m_f_t_0.*if_static,m_b_t_0.*if_static,3);
+v=gradient2(dm_f.*if_static(win+1:end),dm_b.*if_static(win+1:end),1);
 
 d_static=diff(if_static);
 static_start=find(d_static==1);
 static_end=find(d_static==-1);
 v_p=zeros(1,length(a_f));
 v_p(static_start+1:static_end)=v;
+figure
 plot(v)
 
 %% 惯性解算（单独、有速度）
-[X_f,~]=EKF_21_truck_wl(dt,a_f,w_f,v_p,step_No_f);
-[X_b,~]=EKF_21_truck_wl(dt,a_b,w_b,v_p,step_No_b);
-figure
-plot(gt(2,:),gt(1,:),'k')
-hold on
-plot(X_f(2,:),X_f(1,:),'r')
-plot(X_b(2,:),X_b(1,:),'b')
-% plot(X_o(2,:),X_o(1,:),'g')
-axis equal
-legend('truth','front','back')
+% [X_f,~]=EKF_21_truck_wl(dt,a_f,w_f,v_p,step_No_f);
+% [X_b,~]=EKF_21_truck_wl(dt,a_b,w_b,v_p,step_No_b);
+% figure
+% plot(gt(2,:),gt(1,:),'k')
+% hold on
+% plot(X_f(2,:),X_f(1,:),'r')
+% plot(X_b(2,:),X_b(1,:),'b')
+% % plot(X_o(2,:),X_o(1,:),'g')
+% axis equal
+% legend('truth','front','back')
 
 %% 惯性解算（联合）
-[X_f,X_b,cov_f,cov_b,X_o]=EKF_42_truck(dt,a_f,w_f,a_b,w_b,v_p,step_No_f);
+[X_f,X_b,cov_f,cov_b,X_o]=EKF_42_truck(dt,a_f,w_f,a_b,w_b,v_p,step_No_f,L);
 % plot(t,X_f(4:6,:))
 %% 绘图
 figure
