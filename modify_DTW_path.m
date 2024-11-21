@@ -1,9 +1,9 @@
 %%
 %DTW路径
-function [dtwpath]=modify_DTW_path(s1,I,s2,J,w)%
+function [dtwpath]=modify_DTW_path(s1,I,s2,J,w,w1,w2)%
     pathsig=1;
     dtwpath=zeros(I-2*w,J-2*w);    
-    [~,DTW]=modify_DTW(s1,I,s2,J,w); % ,J1
+    [~,DTW]=modify_DTW(s1,I,s2,J,w,w1,w2); % ,J1
   	%寻找路径,这里我采用了逆向搜索法
     i=I-2*w;
 	j=J-2*w;%J1;%J-2*w

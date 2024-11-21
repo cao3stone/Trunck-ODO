@@ -10,7 +10,8 @@ function [t,acce_f,gyro_f,magn_f,acce_b,gyro_b,magn_b]=read_data_magn_odo(dt)
 
 % path=strcat(str1,str21);
 
-path="C:\Users\17816\Desktop\头部双磁\data\20240626\直线\MT_012103B8-000-000_00B431A0.txt";
+% path="C:\Users\17816\Desktop\头部双磁\data\20240626\直线\MT_012103B8-000-000_00B431A0.txt";
+path="C:\Users\17816\Desktop\躯干双磁论文\data\line\MT_012103B8-000-000_00B43298.txt";
 data=readmatrix(path);
 C=[0 0 1;0 1 0;-1 0 0];
 acce_f=C*data(:,3:5)';
@@ -18,7 +19,8 @@ gyro_f=C*data(:,6:8)';
 magn_f=C*data(:,9:11)';
 
 % path=strcat(str1,str22);
-path="C:\Users\17816\Desktop\头部双磁\data\20240626\直线\MT_012103B8-000-000_00B431A0.txt";
+% path="C:\Users\17816\Desktop\头部双磁\data\20240626\直线\MT_012103B8-000-000_00B431A0.txt";
+path="C:\Users\17816\Desktop\躯干双磁论文\data\line\MT_012103B8-000-000_00B46152.txt";
 data=readmatrix(path);
 C=[0 0 -1;0 -1 0;-1 0 0];
 acce_b=C*data(:,3:5)';
