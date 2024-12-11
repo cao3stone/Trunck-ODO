@@ -26,9 +26,11 @@ function v=gradient2(m_f,m_b,row_number)
     % window=1000;
     % w=200;
     window=500;
-    w=50;
-    w1=0.3;
-    w2=1-w1;
+    w=100;
+    % w1=0.35;
+    % w2=1-w1;
+    w1=29;
+    w2=50;
     p=1;
     q=1;
     v=[];
@@ -69,9 +71,7 @@ function v=gradient2(m_f,m_b,row_number)
 %         v=[v;v1];
 %      end
     
-
-     
-if i==300  
+ 
 figure   
 for i=1:pointsize1-window
 if mod(i,200)==0
@@ -89,6 +89,23 @@ if mod(i,200)==0
          ylabel('磁场强度（uT）');
 end
 end
+
+    % figure
+    % plot(magnfirst(:,1),'b');
+    % hold on
+    % plot(magnsecond(:,1),'r');
+    % hold on
+    % for g=1:10:size(m,1)
+    %     % v2(g1,1)=(0.26/(abs(m(g)-n(g))/100));
+    %     % v2(g1,2)=t1(startpoint+w+drop+m(g),1);
+    %     g1=g1+1;
+    %     line([starti+w+drop+m(g) starti+w+drop+n(g)],[magnfirst(starti+w+drop+m(g),1)  magnsecond(starti+w+drop+n(g),1)]);% line([i+w+m(j) i+w+n(j)],[magnfirst(i+w+m(j),3) magnsecond(i+w+n(j),3)]);
+    %     hold on
+    % end
+    % 
+    % %legend('magnfirst','magnsecond','匹配线');
+    % xlabel('采样点数');
+    % ylabel('磁场强度（uT）');
 
 
 %          for k=1:size(m,1)-1
